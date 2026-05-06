@@ -154,6 +154,11 @@ positional:
 	if len(args) < 1 || len(args) > 2 {
 		return "", "", 0, errInvalidArgs
 	}
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			return "", "", 0, fmt.Errorf("unknown option %q (only -4 and -6 are supported)", a)
+		}
+	}
 	target = args[len(args)-1]
 	if len(args) == 2 {
 		dnsServer = strings.TrimSpace(args[0])
@@ -306,20 +311,21 @@ func resolveTarget(target, dnsServer string, family ipFamily) (ip string, host s
 	return selected, selected, dialAddr, allIPs, nil
 }
 
-// formatLocation returns "country, province, city" omitting empty segments (in that order).
+// formatLocation returns "country, province, city" omitting empty segments and
+// consecutive duplicates (e.g. Singapore as both country and province → "Singapore").
 func formatLocation(c *geoip.CityInfo) string {
 	if c == nil {
 		return "Unknown"
 	}
 	var parts []string
-	if c.Country != "" {
-		parts = append(parts, c.Country)
-	}
-	if c.Province != "" {
-		parts = append(parts, c.Province)
-	}
-	if c.City != "" {
-		parts = append(parts, c.City)
+	for _, s := range []string{c.Country, c.Province, c.City} {
+		if s == "" {
+			continue
+		}
+		if len(parts) > 0 && parts[len(parts)-1] == s {
+			continue
+		}
+		parts = append(parts, s)
 	}
 	if len(parts) == 0 {
 		return "Unknown"
