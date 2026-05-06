@@ -70,7 +70,7 @@ func main() {
 		fmt.Println()
 	}
 
-	fmt.Printf("GPING %s (%s): %s\n", target, targetIP, location)
+	printGPINGLine(target, targetIP, location)
 
 	if err := executePing(targetHost); err != nil {
 		fmt.Printf("Ping failed: %v\n", err)
