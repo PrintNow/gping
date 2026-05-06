@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# 在项目根目录执行：仅编译 gping 到 ./bin/gping，不会安装也不会修改任何系统/用户配置。
-# 跨 macOS 与 Linux（按当前 Go 工具链架构编译）。是否安装、装到哪里由用户自行决定。
+# 在项目根目录执行：编译 gping 到 ./bin/gping。
+# 不传参数：仅编译，不会安装、不会修改任何系统/用户配置（仅打印安装建议）。
+# 传 INSTALL_DIR：编译后把二进制 install 到该目录，例如：
+#   ./build.sh ~/.local/bin
+#   ./build.sh /opt/homebrew/bin
+# 跨 macOS 与 Linux，按当前 Go 工具链架构编译。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -23,7 +27,24 @@ chmod +x "$TARGET"
 
 printf '已编译: %s (%s/%s)\n' "$TARGET" "$OS" "$ARCH"
 
-# 候选安装路径（仅展示建议，不会自动复制；按你机器的偏好挑一个执行）。
+# 显式传入 INSTALL_DIR：仅在用户主动指定时才安装到目标目录。
+if [[ $# -ge 1 && -n "${1:-}" ]]; then
+    INSTALL_DIR="$1"
+    mkdir -p "$INSTALL_DIR"
+    install -m 0755 "$TARGET" "$INSTALL_DIR/$BINARY_NAME"
+    printf '已安装: %s/%s\n' "$INSTALL_DIR" "$BINARY_NAME"
+    case ":$PATH:" in
+        *":$INSTALL_DIR:"*)
+            printf 'PATH 已包含 %s\n' "$INSTALL_DIR"
+            ;;
+        *)
+            printf '提示: %s 不在 PATH 中，需要时把它加入你的 shell rc 文件。\n' "$INSTALL_DIR"
+            ;;
+    esac
+    exit 0
+fi
+
+# 未指定 INSTALL_DIR：只列出候选路径，不会自动复制；按你机器的偏好挑一行执行。
 suggestions=()
 [[ -d "$HOME/.local/bin" ]] && suggestions+=("$HOME/.local/bin")
 [[ -d "$HOME/bin" ]] && suggestions+=("$HOME/bin")
