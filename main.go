@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -30,67 +31,89 @@ const (
 )
 
 func main() {
-	dnsServer, target, family, err := parseArgs(os.Args[1:])
+	dnsServer, target, family, count, jsonOut, err := parseArgs(os.Args[1:])
 	if err != nil {
 		if errors.Is(err, errInvalidArgs) {
 			printUsage()
 			os.Exit(1)
 		}
-		fmt.Printf("Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
+	}
+
+	if jsonOut && count == 0 {
+		count = 4
 	}
 
 	targetIP, targetHost, dnsUsed, allIPs, err := resolveTarget(target, dnsServer, family)
 	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 
-	location := "Unknown"
+	var cityInfo *geoip.CityInfo
 	lookup, err := geoip.NewGeoIPLookup()
 	if err != nil {
-		fmt.Printf("Warning: Failed to load GeoIP database: %v\n", err)
-		fmt.Println("Continuing with ping...")
+		if !jsonOut {
+			fmt.Printf("Warning: Failed to load GeoIP database: %v\n", err)
+			fmt.Println("Continuing with ping...")
+		} else {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to load GeoIP database: %v\n", err)
+		}
 	} else {
 		defer lookup.Close()
-
-		cityInfo, err := lookup.LookupCity(targetIP)
+		cityInfo, err = lookup.LookupCity(targetIP)
 		if err != nil {
 			cityInfo = &geoip.CityInfo{}
 		}
-		location = formatLocation(cityInfo)
+	}
+
+	cname := lookupCNAME(target, dnsServer)
+
+	if jsonOut {
+		if err := runJSON(target, targetIP, targetHost, dnsUsed, cname, allIPs, cityInfo, count); err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	if dnsUsed != "" {
 		fmt.Printf("DNS Server: %s\n", dnsUsed)
 	}
-
+	if cname != "" {
+		printCNAMELine(target, cname)
+	}
 	if len(allIPs) > 1 {
 		fmt.Println("IPs: " + formatPingIPList(allIPs, targetIP))
+	}
+	if cname != "" || len(allIPs) > 1 {
 		fmt.Println()
 	}
 
-	printGPINGLine(target, targetIP, location)
+	printGPINGLine(target, targetIP, formatLocation(cityInfo))
 
-	if err := executePing(targetHost); err != nil {
-		fmt.Printf("Ping failed: %v\n", err)
+	if err := executePing(targetHost, count, os.Stdout); err != nil {
+		fmt.Fprintf(os.Stderr, "Ping failed: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 func printUsage() {
 	fmt.Println("Usage:")
-	fmt.Println("  gping <host> [-4|-6]")
-	fmt.Println("  gping <dns> <host> [-4|-6]")
-	fmt.Println("  Options may also appear before the host.")
+	fmt.Println("  gping <host> [-4|-6] [-c N] [-json]")
+	fmt.Println("  gping <dns> <host> [-4|-6] [-c N] [-json]")
+	fmt.Println("  Options may appear before, between, or after positional args.")
+	fmt.Println("  -json prints a single JSON object after ping completes (defaults -c to 4).")
 	fmt.Println("Examples:")
 	fmt.Println("  gping 1.1.1.1")
 	fmt.Println("  gping ipxy.cc")
 	fmt.Println("  gping ipxy.cc -4")
-	fmt.Println("  gping ipxy.cc -6")
+	fmt.Println("  gping ipxy.cc -c 5")
+	fmt.Println("  gping -4 -c 10 ipxy.cc")
+	fmt.Println("  gping ipxy.cc -json")
 	fmt.Println("  gping 22.22.22.22 translate.googleapis.com -4")
-	fmt.Println("  gping -4 ipxy.cc")
-	fmt.Println("  gping 127.0.0.1:253 ipxy.cc -4")
+	fmt.Println("  gping 127.0.0.1:253 ipxy.cc -4 -c 3")
 }
 
 func flagLabel(f ipFamily) string {
@@ -112,61 +135,56 @@ func bumpFamily(family *ipFamily, v ipFamily) error {
 	}
 }
 
-// parseArgs accepts [-4|-6] at the end and/or before positional args, then:
-// one arg (<host>) or two (<dns> <host>).
-func parseArgs(argv []string) (dnsServer, target string, family ipFamily, err error) {
-	args := append([]string(nil), argv...)
-
-	for len(args) > 0 {
-		switch args[len(args)-1] {
-		case "-4":
+// parseArgs accepts options ([-4|-6], [-c N]) interleaved with one or two
+// positional args: <host> or <dns> <host>.
+func parseArgs(argv []string) (dnsServer, target string, family ipFamily, count int, jsonOut bool, err error) {
+	var positional []string
+	for i := 0; i < len(argv); i++ {
+		a := argv[i]
+		switch {
+		case a == "-4":
 			if e := bumpFamily(&family, ipFamily4); e != nil {
-				return "", "", 0, e
+				return "", "", 0, 0, false, e
 			}
-			args = args[:len(args)-1]
-		case "-6":
+		case a == "-6":
 			if e := bumpFamily(&family, ipFamily6); e != nil {
-				return "", "", 0, e
+				return "", "", 0, 0, false, e
 			}
-			args = args[:len(args)-1]
+		case a == "-c":
+			if i+1 >= len(argv) {
+				return "", "", 0, 0, false, fmt.Errorf("-c requires a positive integer")
+			}
+			i++
+			if count != 0 {
+				return "", "", 0, 0, false, errors.New("duplicate -c flag")
+			}
+			n, e := strconv.Atoi(argv[i])
+			if e != nil || n <= 0 {
+				return "", "", 0, 0, false, fmt.Errorf("-c requires a positive integer, got %q", argv[i])
+			}
+			count = n
+		case a == "-json" || a == "--json":
+			if jsonOut {
+				return "", "", 0, 0, false, errors.New("duplicate -json flag")
+			}
+			jsonOut = true
+		case strings.HasPrefix(a, "-"):
+			return "", "", 0, 0, false, fmt.Errorf("unknown option %q (only -4, -6, -c, -json are supported)", a)
 		default:
-			goto stripLeading
+			positional = append(positional, a)
 		}
 	}
-stripLeading:
-	for len(args) > 0 {
-		switch args[0] {
-		case "-4":
-			if e := bumpFamily(&family, ipFamily4); e != nil {
-				return "", "", 0, e
-			}
-			args = args[1:]
-		case "-6":
-			if e := bumpFamily(&family, ipFamily6); e != nil {
-				return "", "", 0, e
-			}
-			args = args[1:]
-		default:
-			goto positional
-		}
+	if len(positional) < 1 || len(positional) > 2 {
+		return "", "", 0, 0, false, errInvalidArgs
 	}
-positional:
-	if len(args) < 1 || len(args) > 2 {
-		return "", "", 0, errInvalidArgs
-	}
-	for _, a := range args {
-		if strings.HasPrefix(a, "-") {
-			return "", "", 0, fmt.Errorf("unknown option %q (only -4 and -6 are supported)", a)
-		}
-	}
-	target = args[len(args)-1]
-	if len(args) == 2 {
-		dnsServer = strings.TrimSpace(args[0])
+	target = positional[len(positional)-1]
+	if len(positional) == 2 {
+		dnsServer = strings.TrimSpace(positional[0])
 		if dnsServer == "" {
-			return "", "", 0, fmt.Errorf("DNS server address cannot be empty")
+			return "", "", 0, 0, false, fmt.Errorf("DNS server address cannot be empty")
 		}
 	}
-	return dnsServer, target, family, nil
+	return dnsServer, target, family, count, jsonOut, nil
 }
 
 // normalizeDNSAddr returns a host:port suitable for net.Dial. Port defaults to 53.
@@ -311,6 +329,43 @@ func resolveTarget(target, dnsServer string, family ipFamily) (ip string, host s
 	return selected, selected, dialAddr, allIPs, nil
 }
 
+// lookupCNAME returns the canonical name for target, or "" when target is an IP
+// literal, lookup fails, or the canonical name equals target (no CNAME present).
+// When dnsServer is non-empty, the same custom resolver as resolveTarget is used.
+func lookupCNAME(target, dnsServer string) string {
+	if net.ParseIP(target) != nil {
+		return ""
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resolver := net.DefaultResolver
+	if dnsServer != "" {
+		dialAddr, err := normalizeDNSAddr(dnsServer)
+		if err != nil {
+			return ""
+		}
+		resolver = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
+				d := net.Dialer{Timeout: 5 * time.Second}
+				return d.DialContext(ctx, network, dialAddr)
+			},
+		}
+	}
+
+	cname, err := resolver.LookupCNAME(ctx, target)
+	if err != nil {
+		return ""
+	}
+	cname = strings.TrimSuffix(cname, ".")
+	if cname == "" || strings.EqualFold(cname, strings.TrimSuffix(target, ".")) {
+		return ""
+	}
+	return cname
+}
+
 // formatLocation returns "country, province, city" omitting empty segments and
 // consecutive duplicates (e.g. Singapore as both country and province → "Singapore").
 func formatLocation(c *geoip.CityInfo) string {
@@ -333,15 +388,19 @@ func formatLocation(c *geoip.CityInfo) string {
 	return strings.Join(parts, ", ")
 }
 
-func pingCommand(host string) (name string, args []string) {
+func pingCommand(host string, count int) (name string, args []string) {
+	var opts []string
+	if count > 0 {
+		opts = []string{"-c", strconv.Itoa(count)}
+	}
 	ip := net.ParseIP(host)
 	if ip != nil && ip.To4() == nil {
 		if runtime.GOOS == "darwin" {
-			return "ping6", []string{host}
+			return "ping6", append(opts, host)
 		}
-		return "ping", []string{"-6", host}
+		return "ping", append([]string{"-6"}, append(opts, host)...)
 	}
-	return "ping", []string{host}
+	return "ping", append(opts, host)
 }
 
 // skipPingBannerLine drops the first line of ping output when it is the standard
@@ -364,7 +423,7 @@ func skipPingBannerLine(r io.Reader, w io.Writer) error {
 	return scanner.Err()
 }
 
-func executePing(host string) error {
+func executePing(host string, count int, out io.Writer) error {
 	// Terminal SIGINT is delivered to the whole foreground process group. If the parent
 	// uses the default handler, the Go runtime prints "signal: interrupt" after the
 	// child (ping) has already handled Ctrl+C gracefully. Ignore SIGINT here so ping
@@ -372,7 +431,7 @@ func executePing(host string) error {
 	signal.Ignore(os.Interrupt)
 	defer signal.Reset(os.Interrupt)
 
-	name, args := pingCommand(host)
+	name, args := pingCommand(host, count)
 	cmd := exec.Command(name, args...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
@@ -385,7 +444,7 @@ func executePing(host string) error {
 		return err
 	}
 
-	streamErr := skipPingBannerLine(stdout, os.Stdout)
+	streamErr := skipPingBannerLine(stdout, out)
 	waitErr := cmd.Wait()
 	if streamErr != nil {
 		return streamErr

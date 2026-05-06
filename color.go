@@ -23,11 +23,25 @@ func stdoutANSI() bool {
 // 使用“标准 16 色”而非固定 RGB：多数终端在浅色/深色主题下会重映射，比硬编码亮色更耐看。
 const (
 	ansiBold  = "\x1b[1m"
+	ansiDim   = "\x1b[2m"
 	ansiBlue  = "\x1b[34m" // hostname
 	ansiCyan  = "\x1b[36m" // IP
 	ansiMag   = "\x1b[35m" // 地理位置
 	ansiReset = "\x1b[0m"
 )
+
+func printCNAMELine(target, cname string) {
+	if !stdoutANSI() {
+		fmt.Printf("CNAME: %s -> %s\n", target, cname)
+		return
+	}
+	fmt.Printf("%sCNAME:%s %s%s%s %s→%s %s%s%s\n",
+		ansiBold, ansiReset,
+		ansiBlue, target, ansiReset,
+		ansiDim, ansiReset,
+		ansiBlue, cname, ansiReset,
+	)
+}
 
 func printGPINGLine(target, targetIP, location string) {
 	if !stdoutANSI() {
