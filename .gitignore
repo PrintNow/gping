@@ -1,0 +1,28 @@
+# 编译产物
+gping
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 测试产物
+*.test
+*.out
+
+# Go 工作区文件
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# MaxMind 数据库文件（不提交到仓库）
+data/*.mmdb
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
