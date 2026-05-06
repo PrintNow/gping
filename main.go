@@ -227,18 +227,20 @@ func uniqueIPStrings(ips []net.IP) []string {
 	return out
 }
 
-// formatPingIPList is one line of all resolved addresses; the address used for ping
-// is prefixed with * (e.g. *1.1.1.1, 1.0.0.1). Used only when there are multiple IPs.
+// formatPingIPList is one line of all resolved addresses. The address used for ping
+// is listed first with a * prefix (e.g. *1.1.1.1, 1.0.0.1). Used only when there are multiple IPs.
 func formatPingIPList(all []string, selected string) string {
-	parts := make([]string, 0, len(all))
+	var rest []string
 	for _, ip := range all {
-		if ip == selected {
-			parts = append(parts, "*"+ip)
-		} else {
-			parts = append(parts, ip)
+		if ip != selected {
+			rest = append(rest, ip)
 		}
 	}
-	return strings.Join(parts, ", ")
+	out := "*" + selected
+	if len(rest) > 0 {
+		out += ", " + strings.Join(rest, ", ")
+	}
+	return out
 }
 
 func resolveTarget(target, dnsServer string, family ipFamily) (ip string, host string, dnsUsed string, allIPs []string, err error) {

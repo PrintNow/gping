@@ -1,4 +1,5 @@
 # 编译产物
+bin/
 gping
 *.exe
 *.dll
