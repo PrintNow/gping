@@ -1,32 +1,49 @@
 #!/usr/bin/env bash
-# 在项目根目录执行：编译 gping 并安装到本机用户路径（适合 macOS Apple Silicon，原生 arm64）。
+# 在项目根目录执行：仅编译 gping 到 ./bin/gping，不会安装也不会修改任何系统/用户配置。
+# 跨 macOS 与 Linux（按当前 Go 工具链架构编译）。是否安装、装到哪里由用户自行决定。
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-# 安装目录：可通过第一个参数覆盖，例如 ./build.sh /opt/homebrew/bin
-INSTALL_DIR="${1:-$HOME/bin}"
+BIN_DIR="$ROOT/bin"
 BINARY_NAME="gping"
-TARGET="$INSTALL_DIR/$BINARY_NAME"
+TARGET="$BIN_DIR/$BINARY_NAME"
 
-if [[ "$(uname -s)" != "Darwin" ]]; then
-	printf '提示: 当前不是 macOS，仍会继续编译为当前系统架构。\n' >&2
-fi
+OS="$(uname -s)"
 ARCH="$(uname -m)"
-if [[ "$(uname -s)" == "Darwin" && "$ARCH" != "arm64" ]]; then
-	printf '提示: Apple Silicon 一般为 arm64；本机为 %s，将编译为当前 CPU 架构。\n' "$ARCH" >&2
-fi
+case "$OS" in
+    Darwin|Linux) ;;
+    *) printf '提示: 未明确支持的系统 %s，将按当前 Go 工具链编译。\n' "$OS" >&2 ;;
+esac
 
-mkdir -p "$INSTALL_DIR"
+mkdir -p "$BIN_DIR"
 go build -o "$TARGET" .
 chmod +x "$TARGET"
 
-printf '已安装: %s\n' "$TARGET"
-case ":$PATH:" in
-*":$INSTALL_DIR:"*) printf 'PATH 已包含 %s\n' "$INSTALL_DIR" ;;
-*)
-	printf '\n若命令找不到，可把下面一行加入 ~/.zshrc 后执行 source ~/.zshrc：\n'
-	printf '  export PATH="%s:$PATH"\n' "$INSTALL_DIR"
-	;;
-esac
+printf '已编译: %s (%s/%s)\n' "$TARGET" "$OS" "$ARCH"
+
+# 候选安装路径（仅展示建议，不会自动复制；按你机器的偏好挑一个执行）。
+suggestions=()
+[[ -d "$HOME/.local/bin" ]] && suggestions+=("$HOME/.local/bin")
+[[ -d "$HOME/bin" ]] && suggestions+=("$HOME/bin")
+if [[ "$OS" == "Darwin" ]]; then
+    if [[ "$ARCH" == "arm64" && -d "/opt/homebrew/bin" ]]; then
+        suggestions+=("/opt/homebrew/bin")
+    elif [[ -d "/usr/local/bin" ]]; then
+        suggestions+=("/usr/local/bin")
+    fi
+elif [[ "$OS" == "Linux" && -d "/usr/local/bin" ]]; then
+    suggestions+=("/usr/local/bin")
+fi
+# 兜底：即使目录不存在也提示 XDG 标准位置
+[[ ${#suggestions[@]} -eq 0 ]] && suggestions+=("$HOME/.local/bin")
+
+printf '\n若要安装到 PATH，可任选其一手动执行：\n'
+for d in "${suggestions[@]}"; do
+    case ":$PATH:" in
+        *":$d:"*) note=" (已在 PATH)" ;;
+        *)        note=" (需将该目录加入 PATH)" ;;
+    esac
+    printf '  install -m 0755 %s %s/%s%s\n' "$TARGET" "$d" "$BINARY_NAME" "$note"
+done
