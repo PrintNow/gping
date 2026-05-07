@@ -38,6 +38,43 @@ go build -o gping
 ./gping ipxy.cc
 ```
 
+### 指定 DNS（支持 UDP / DoT / DoH）
+
+`<dns>` 参数可填四种形态：
+
+```bash
+./gping 1.1.1.1 ipxy.cc                       # 传统 UDP/53
+./gping 127.0.0.1:5353 ipxy.cc                # 自定义端口
+./gping cf ipxy.cc                            # 内置别名 → DoH (cloudflare)
+./gping ali www.youtube.com                   # 内置别名 → DoH (阿里)
+./gping doh://dns.google/dns-query baidu.com  # 完整 DoH URL
+./gping dot://cf gping.dev                    # DoT cloudflare
+./gping dot://192.168.1.1 internal-svc        # DoT 内网（默认 :853）
+```
+
+内置别名：`cf` / `cloudflare`、`google` / `g`、`quad9`、`adguard`、`ali` / `aliyun`、`dnspod` / `tx`、`360`。短别名默认走 DoH；DoT 需显式 `dot://`。
+
+#### 自定义别名
+
+可选写 `~/.config/gping/dns.toml`（或 `$XDG_CONFIG_HOME/gping/dns.toml`）：
+
+```toml
+[corp]
+type = "doh"
+url  = "https://dns.corp.local/dns-query"
+
+[home]
+type = "dot"
+addr = "192.168.1.1:853"
+sni  = "router.local"
+
+[fast53]
+type = "udp"
+addr = "10.0.0.1:53"
+```
+
+之后即可 `./gping corp internal-svc`。同名条目会覆盖内置别名。
+
 ### 输出示例
 
 ```

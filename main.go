@@ -17,6 +17,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/miekg/dns"
+
 	"gping/geoip"
 )
 
@@ -105,13 +107,16 @@ func printUsage() {
 	fmt.Println("  gping <dns> <host> [-4|-6] [-c N] [-json]")
 	fmt.Println("  Options may appear before, between, or after positional args.")
 	fmt.Println("  -json prints a single JSON object after ping completes (defaults -c to 4).")
+	fmt.Println("DNS forms: <ip|host[:port]> | <alias> | doh://<alias|url> | dot://<alias|host[:port]>")
+	fmt.Println("Built-in aliases: cf, cloudflare, google, g, quad9, adguard, ali, aliyun, dnspod, tx, 360")
+	fmt.Println("User aliases: ~/.config/gping/dns.toml")
 	fmt.Println("Examples:")
 	fmt.Println("  gping 1.1.1.1")
 	fmt.Println("  gping ipxy.cc")
-	fmt.Println("  gping ipxy.cc -4")
-	fmt.Println("  gping ipxy.cc -c 5")
-	fmt.Println("  gping -4 -c 10 ipxy.cc")
-	fmt.Println("  gping ipxy.cc -json")
+	fmt.Println("  gping cf gping.dev                          # DoH cloudflare via alias")
+	fmt.Println("  gping ali www.youtube.com -c 3              # 阿里 DoH")
+	fmt.Println("  gping dot://cf gping.dev                    # DoT cloudflare")
+	fmt.Println("  gping doh://dns.google/dns-query baidu.com  # full DoH URL")
 	fmt.Println("  gping 22.22.22.22 translate.googleapis.com -4")
 	fmt.Println("  gping 127.0.0.1:253 ipxy.cc -4 -c 3")
 }
@@ -295,38 +300,23 @@ func resolveTarget(target, dnsServer string, family ipFamily) (ip string, host s
 		return selected, selected, "", allIPs, nil
 	}
 
-	dialAddr, err := normalizeDNSAddr(dnsServer)
+	ep, err := resolveDNSEndpoint(dnsServer, mergedAliases())
 	if err != nil {
 		return "", "", "", nil, fmt.Errorf("invalid DNS server: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	r := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-			d := net.Dialer{Timeout: 5 * time.Second}
-			return d.DialContext(ctx, network, dialAddr)
-		},
-	}
-
-	addrs, err := r.LookupIPAddr(ctx, target)
+	addrs, _, err := resolveAddrsViaEndpoint(ep, target, family)
 	if err != nil {
 		return "", "", "", nil, fmt.Errorf("DNS lookup failed: %w", err)
 	}
-	var ips []net.IP
-	for _, a := range addrs {
-		ips = append(ips, a.IP)
-	}
-	ips = filterByFamily(ips, family)
-	if len(ips) == 0 {
+	addrs = filterByFamily(addrs, family)
+	if len(addrs) == 0 {
 		return "", "", "", nil, errNoAddrFamily(family)
 	}
 
-	allIPs = uniqueIPStrings(ips)
+	allIPs = uniqueIPStrings(addrs)
 	selected := allIPs[rand.Intn(len(allIPs))]
-	return selected, selected, dialAddr, allIPs, nil
+	return selected, selected, ep.Display, allIPs, nil
 }
 
 // lookupCNAME returns the canonical name for target, or "" when target is an IP
@@ -337,28 +327,35 @@ func lookupCNAME(target, dnsServer string) string {
 		return ""
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	resolver := net.DefaultResolver
-	if dnsServer != "" {
-		dialAddr, err := normalizeDNSAddr(dnsServer)
+	if dnsServer == "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		cname, err := net.DefaultResolver.LookupCNAME(ctx, target)
 		if err != nil {
 			return ""
 		}
-		resolver = &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-				d := net.Dialer{Timeout: 5 * time.Second}
-				return d.DialContext(ctx, network, dialAddr)
-			},
-		}
+		return finalizeCNAME(cname, target)
 	}
 
-	cname, err := resolver.LookupCNAME(ctx, target)
+	ep, err := resolveDNSEndpoint(dnsServer, mergedAliases())
 	if err != nil {
 		return ""
 	}
+	resp, err := queryDNS(ep, target, dns.TypeCNAME)
+	if err != nil || resp == nil {
+		return ""
+	}
+	for _, rr := range resp.Answer {
+		if c, ok := rr.(*dns.CNAME); ok {
+			if out := finalizeCNAME(c.Target, target); out != "" {
+				return out
+			}
+		}
+	}
+	return ""
+}
+
+func finalizeCNAME(cname, target string) string {
 	cname = strings.TrimSuffix(cname, ".")
 	if cname == "" || strings.EqualFold(cname, strings.TrimSuffix(target, ".")) {
 		return ""

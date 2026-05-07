@@ -17,8 +17,11 @@
 ## 仓库结构
 
 ```
-main.go            参数解析、DNS/CNAME 解析、ping 子进程编排
+main.go            参数解析、DNS/CNAME 解析编排、ping 子进程
+dnsproto.go        Endpoint 类型、UDP/DoT/DoH 三路查询、resolveDNSEndpoint 判别
+dnsalias.go        内置别名表 + ~/.config/gping/dns.toml 用户别名（sync.Once 缓存）
 color.go           TTY 检测 + ANSI 着色（GPING 行、CNAME 行）
+json.go            -json 一次性输出
 geoip/lookup.go    MMDB 加载策略 + City 查询解码
 data/embed.go      go:embed GeoLite2-City.mmdb（70MB，未提交）
 data/README.md     数据库放置说明
@@ -48,7 +51,8 @@ go build -o bin/gping .          # 直接 go build
 - **改 main.go 后必须重新构建到 `bin/gping`**：`go build ./...` 只做检查不写文件，会跑到旧二进制上误判。统一用 `go build -o bin/gping .` 或 `make build`。
 - **参数解析**：`main.go:parseArgs` 是单次扫描，`-4`/`-6`/`-c N` 可与 positional 任意顺序穿插。新增选项就在那个 switch 里加 case，并同步更新 `printUsage` 与未知选项错误提示文本。
 - **彩色输出走 TTY 检测**：`color.go:stdoutANSI` 同时尊重 `NO_COLOR` / `CLICOLOR=0` / `TERM=dumb`。新增彩色行要遵循"非 TTY 降级为纯文本"的形态（参考 `printCNAMELine` 的 `→` ↔ `->`）。
-- **CNAME 查询走 `net.Resolver`**：`lookupCNAME` 在自定义 DNS 时复用 `PreferGo` 的 resolver；macOS 上 cgo resolver 有时也能拿到 CNAME，但不要依赖。返回 `""` 表示无需展示（IP 字面量 / 查询失败 / canonical == target）。
+- **CNAME 查询**：`lookupCNAME` 走两条路——`dnsServer == ""` 时用 `net.DefaultResolver`；自定义 DNS 时走 `dnsproto.go:queryDNS`（与 A/AAAA 同一个 Endpoint）。返回 `""` 表示无需展示（IP 字面量 / 查询失败 / canonical == target）。
+- **DNS endpoint 解析层**：自定义 DNS 字符串先过 `resolveDNSEndpoint`，按优先级判别 `doh://` / `dot://` / 别名 / 普通 `host[:port]`。三种 transport（`queryUDP` / `queryDoT` / `queryDoH`）平铺，不抽接口。别名表 = 内置 `builtinDNS` ∪ `~/.config/gping/dns.toml`；用户文件不存在静默跳过、解析坏给 stderr warning 但仍跑内置。新增内置别名直接改 `dnsalias.go:builtinDNS`。
 - **MMDB 加载顺序**：`GEOIP_CITY_DB` → `./data/GeoLite2-City.mmdb` → 可执行文件旁的 `data/GeoLite2-City.mmdb` → 嵌入字节（`data.CityDB`）。改这里要保持"文件系统优先于 embed"的语义（embed 容易因构建缓存而过期）。
 - **ping 透传**：`executePing` 故意 `signal.Ignore(os.Interrupt)`，让 Ctrl+C 直接交给 `ping` 子进程，避免 Go runtime 多打一行 `signal: interrupt`。`skipPingBannerLine` 仅吞首行 `PING ...`，保留其余原样输出。
 - **IPv6 ping**：macOS 用 `ping6`，Linux 用 `ping -6`，见 `pingCommand`。新选项要考虑两条路径都 append。
