@@ -22,7 +22,12 @@ import (
 	"gping/geoip"
 )
 
-var errInvalidArgs = errors.New("invalid arguments")
+var (
+	version    = "dev"
+	repoURL    = "https://github.com/PrintNow/gping"
+	copyright  = "Copyright (c) 2026 Shine"
+	errInvalidArgs = errors.New("invalid arguments")
+)
 
 type ipFamily int
 
@@ -33,6 +38,10 @@ const (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "-v" {
+		fmt.Printf("gping %s\n%s\n%s\n", version, repoURL, copyright)
+		return
+	}
 	dnsServer, target, family, count, jsonOut, err := parseArgs(os.Args[1:])
 	if err != nil {
 		if errors.Is(err, errInvalidArgs) {
@@ -103,6 +112,7 @@ func main() {
 
 func printUsage() {
 	fmt.Println("Usage:")
+	fmt.Println("  gping -v")
 	fmt.Println("  gping <host> [-4|-6] [-c N] [-json]")
 	fmt.Println("  gping <dns> <host> [-4|-6] [-c N] [-json]")
 	fmt.Println("  Options may appear before, between, or after positional args.")

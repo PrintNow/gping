@@ -22,7 +22,8 @@ case "$OS" in
 esac
 
 mkdir -p "$BIN_DIR"
-go build -o "$TARGET" .
+VERSION="$(git describe --tags --always --dirty 2>/dev/null || echo dev)"
+go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "$TARGET" .
 chmod +x "$TARGET"
 
 printf '已编译: %s (%s/%s)\n' "$TARGET" "$OS" "$ARCH"

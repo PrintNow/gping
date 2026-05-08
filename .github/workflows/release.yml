@@ -35,8 +35,9 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
+          VERSION="${GITHUB_REF_NAME}"
           NAME=gping-${{ matrix.goos }}-${{ matrix.goarch }}
-          go build -trimpath -ldflags="-s -w" -o "${NAME}" .
+          go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "${NAME}" .
           chmod +x "${NAME}"
           tar czf "${NAME}.tar.gz" "${NAME}"
           echo "ARCHIVE=${NAME}.tar.gz" >> "$GITHUB_ENV"

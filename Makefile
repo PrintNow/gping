@@ -10,9 +10,12 @@ GEOLITE_GZ_URL ?= https://raw.githubusercontent.com/wp-statistics/GeoLite2-City/
 
 .PHONY: build clean download-geolite geolite clean-geolite
 
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+LDFLAGS := -s -w -X main.version=$(VERSION)
+
 build:
 	mkdir -p $(BIN_DIR)
-	go build -o $(OUTPUT) .
+	go build -trimpath -ldflags='$(LDFLAGS)' -o $(OUTPUT) .
 
 clean:
 	rm -f $(OUTPUT)
