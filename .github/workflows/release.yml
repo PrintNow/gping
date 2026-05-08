@@ -81,3 +81,26 @@ jobs:
         with:
           generate_release_notes: true
           files: artifacts/*
+
+  update-readme:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Update README version
+        run: |
+          NEW_VERSION="${GITHUB_REF_NAME}"
+          # Extract old version from README download URL pattern
+          OLD_VERSION=$(grep -oE 'download/v[0-9]+\.[0-9]+\.[0-9]+/' README.md | head -1 | grep -oE 'v[0-9]+\.[0-9]+\.[0-9]+')
+          if [ -z "$OLD_VERSION" ] || [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+            echo "No version update needed"
+            exit 0
+          fi
+          sed -i "s|${OLD_VERSION}|${NEW_VERSION}|g" README.md README.zh-CN.md
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md README.zh-CN.md
+          git commit -m "docs: README 下载链接版本号自动更新为 ${NEW_VERSION}"
+          git push
