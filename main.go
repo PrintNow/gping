@@ -39,7 +39,7 @@ const (
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
-		fmt.Printf("gping %s (%s/%s)\n%s\n%s\n", version, runtime.GOOS, runtime.GOARCH, repoURL, copyright)
+		fmt.Printf("gping %s %s/%s\n", version, runtime.GOOS, runtime.GOARCH)
 		return
 	}
 	dnsServer, target, family, count, jsonOut, err := parseArgs(os.Args[1:])
