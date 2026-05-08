@@ -2,7 +2,7 @@
 
 # gping
 
-一个增强版的 ping 工具，在执行 ping 前显示目标 IP 的地理位置信息。支持 DoT / DoH 自定义 DNS。
+> **g**eo + **ping** — 一个增强版的 ping 工具，在执行 ping 前显示目标 IP 的地理位置信息。支持 DoT / DoH 自定义 DNS。
 
 ```
 $ gping 1.1.1.1

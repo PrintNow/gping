@@ -2,7 +2,7 @@
 
 # gping
 
-An enhanced ping tool that displays the geolocation of the target IP before pinging. Supports DoT / DoH custom DNS.
+> **g**eo + **ping** — An enhanced ping tool that displays the geolocation of the target IP before pinging. Supports DoT / DoH custom DNS.
 
 ```
 $ gping 1.1.1.1
