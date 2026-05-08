@@ -5,6 +5,7 @@ import (
 	"net/netip"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"gping/data"
 
@@ -33,9 +34,8 @@ func NewGeoIPLookup() (*GeoIPLookup, error) {
 }
 
 // openCityReader loads GeoLite2 City in order: GEOIP_CITY_DB, data/GeoLite2-City.mmdb
-// (cwd and beside executable), then compile-time embedded copy. Embedding can go stale when
-// only the MMDB changes if the build cache is wrong; filesystem paths pick up replacements
-// without requiring a rebuild in many workflows.
+// (cwd and beside executable), platform-specific path (~/Library/Application Support/gping/
+// on macOS, $XDG_DATA_HOME/gping/ on Linux), then compile-time embedded copy.
 func openCityReader() (*maxminddb.Reader, error) {
 	var lastErr error
 
@@ -100,7 +100,31 @@ func defaultCityPaths() []string {
 		dir := filepath.Dir(filepath.Clean(exe))
 		out = append(out, filepath.Join(dir, "data", "GeoLite2-City.mmdb"))
 	}
+	if p := platformCityPath(); p != "" {
+		out = append(out, p)
+	}
 	return out
+}
+
+func platformCityPath() string {
+	mmdb := filepath.Join("gping", "GeoLite2-City.mmdb")
+	switch runtime.GOOS {
+	case "darwin":
+		if home, err := os.UserHomeDir(); err == nil {
+			return filepath.Join(home, "Library", "Application Support", mmdb)
+		}
+	case "linux":
+		dataHome := os.Getenv("XDG_DATA_HOME")
+		if dataHome == "" {
+			if home, err := os.UserHomeDir(); err == nil {
+				dataHome = filepath.Join(home, ".local", "share")
+			}
+		}
+		if dataHome != "" {
+			return filepath.Join(dataHome, mmdb)
+		}
+	}
+	return ""
 }
 
 func (g *GeoIPLookup) LookupCity(ipStr string) (*CityInfo, error) {

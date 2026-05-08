@@ -23,9 +23,7 @@ import (
 )
 
 var (
-	version    = "dev"
-	repoURL    = "https://github.com/PrintNow/gping"
-	copyright  = "Copyright (c) 2026 Shine"
+	version        = "dev"
 	errInvalidArgs = errors.New("invalid arguments")
 )
 
@@ -39,7 +37,7 @@ const (
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "-v" {
-		fmt.Printf("gping %s\n%s\n%s\n", version, repoURL, copyright)
+		fmt.Printf("gping %s %s/%s\n", version, runtime.GOOS, runtime.GOARCH)
 		return
 	}
 	dnsServer, target, family, count, jsonOut, err := parseArgs(os.Args[1:])

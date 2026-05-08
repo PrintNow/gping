@@ -22,32 +22,46 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-darwin-arm64.tar.gz
-tar xzf gping-darwin-arm64.tar.gz
-rm gping-darwin-arm64.tar.gz
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-darwin-arm64-v1.0.0.tar.gz"
+tar xzf "gping-darwin-arm64-v1.0.0.tar.gz"
+rm "gping-darwin-arm64-v1.0.0.tar.gz"
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
-curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-linux-amd64.tar.gz
-tar xzf gping-linux-amd64.tar.gz
-rm gping-linux-amd64.tar.gz
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-linux-amd64-v1.0.0.tar.gz"
+tar xzf "gping-linux-amd64-v1.0.0.tar.gz"
+rm "gping-linux-amd64-v1.0.0.tar.gz"
+mv gping ~/.local/bin/
+```
+
+#### 精简版（约 8MB，不内嵌数据库）
+
+更小的二进制文件，不包含内嵌的 GeoLite2 数据库。需自行提供 MMDB 文件（放置路径见[注意事项](#注意事项)）。
+
+```bash
+# macOS (Apple Silicon)
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-tiny-darwin-arm64-v1.0.0.tar.gz"
+tar xzf "gping-tiny-darwin-arm64-v1.0.0.tar.gz"
+rm "gping-tiny-darwin-arm64-v1.0.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
 ### 从源码构建
 
-需要 Go 1.25+ 和 MaxMind GeoLite2 City 数据库（MMDB 格式）。
+需要 Go 1.25+。
 
 ```bash
-# 1. 下载数据库：https://www.maxmind.com/en/geolite2/signup
-#    将 GeoLite2-City.mmdb 放到 data/ 目录
+# 完整构建（嵌入 GeoLite2-City.mmdb，二进制约 70MB）
+# 下载数据库（无需注册账号）：
+make download-geolite
+make build
 
-# 2. 构建
-go build -o gping
+# 或从 MaxMind 手动下载（需注册账号）：
+# https://www.maxmind.com/en/geolite2/signup
+# 将 GeoLite2-City.mmdb 放到 data/ 目录
 
-# 3. 或使用 build.sh（编译到 ./bin/）
-./build.sh
-./build.sh ~/.local/bin   # 编译并安装到指定目录
+# 精简构建（二进制约 8MB，运行时需外部 MMDB）
+make build-tiny
 ```
 
 ## 使用方法
@@ -131,7 +145,8 @@ addr = "10.0.0.1:53"
 ### 常用命令
 
 ```bash
-make build          # 构建到 ./bin/gping
+make build          # 构建到 ./bin/gping（完整版，约 70MB）
+make build-tiny     # 构建到 ./bin/gping（精简版，约 8MB，不含内嵌数据库）
 make test           # 运行测试
 make clean          # 清理构建产物
 ```
@@ -145,7 +160,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-CI 会交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64` 四个平台，打包为 `.tar.gz` 并创建 Release。
+CI 会交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64` 四个平台的完整版和精简版（共 8 个产物），打包为 `.tar.gz` 并创建 Release。
 
 ### 依赖
 
@@ -155,7 +170,14 @@ CI 会交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm6
 
 ## 注意事项
 
-- 数据库文件约 70MB，嵌入到二进制中（不提交到 git）
+- **完整构建**：数据库文件约 70MB，嵌入到二进制中（不提交到 git）
+- **精简构建**：不嵌入数据库，二进制约 8MB。需自行提供 MMDB 文件，放在以下任一位置（按优先级）：
+  - `GEOIP_CITY_DB` 环境变量（完整路径）
+  - 工作目录下的 `data/GeoLite2-City.mmdb`
+  - 可执行文件所在目录下的 `data/GeoLite2-City.mmdb`
+  - macOS：`~/Library/Application Support/gping/GeoLite2-City.mmdb`
+  - Linux：`$XDG_DATA_HOME/gping/GeoLite2-City.mmdb`（默认 `~/.local/share/gping/GeoLite2-City.mmdb`）
+- 完整构建同样支持上述文件系统路径（环境变量和文件路径优先于嵌入副本）
 - 仅支持 macOS 和 Linux
 - 数据库加载失败时会显示警告，仍可正常 ping
 
