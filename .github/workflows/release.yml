@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Download GeoLite2 database
+        run: make download-geolite
       - name: Build
         env:
           GOOS: ${{ matrix.goos }}
