@@ -24,11 +24,13 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 # macOS (Apple Silicon)
 curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-darwin-arm64.tar.gz
 tar xzf gping-darwin-arm64.tar.gz
+rm gping-darwin-arm64.tar.gz
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
 curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-linux-amd64.tar.gz
 tar xzf gping-linux-amd64.tar.gz
+rm gping-linux-amd64.tar.gz
 mv gping ~/.local/bin/
 ```
 
