@@ -21,19 +21,16 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 Download from [GitHub Releases](../../releases), extract and place in your PATH:
 
 ```bash
-# Get the latest release version
-TAG=$(curl -s https://api.github.com/repos/PrintNow/gping/releases/latest | grep '"tag_name"' | sed 's/.*: *"//;s/".*//')
-
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-darwin-arm64-${TAG}.tar.gz"
-tar xzf "gping-darwin-arm64-${TAG}.tar.gz"
-rm "gping-darwin-arm64-${TAG}.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-darwin-arm64-v1.0.0.tar.gz"
+tar xzf "gping-darwin-arm64-v1.0.0.tar.gz"
+rm "gping-darwin-arm64-v1.0.0.tar.gz"
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
-curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-linux-amd64-${TAG}.tar.gz"
-tar xzf "gping-linux-amd64-${TAG}.tar.gz"
-rm "gping-linux-amd64-${TAG}.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-linux-amd64-v1.0.0.tar.gz"
+tar xzf "gping-linux-amd64-v1.0.0.tar.gz"
+rm "gping-linux-amd64-v1.0.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
@@ -43,9 +40,9 @@ A smaller binary without the embedded GeoLite2 database. You must provide the MM
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-tiny-darwin-arm64-${TAG}.tar.gz"
-tar xzf "gping-tiny-darwin-arm64-${TAG}.tar.gz"
-rm "gping-tiny-darwin-arm64-${TAG}.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.0.0/gping-tiny-darwin-arm64-v1.0.0.tar.gz"
+tar xzf "gping-tiny-darwin-arm64-v1.0.0.tar.gz"
+rm "gping-tiny-darwin-arm64-v1.0.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 

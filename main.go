@@ -23,9 +23,7 @@ import (
 )
 
 var (
-	version    = "dev"
-	repoURL    = "https://github.com/PrintNow/gping"
-	copyright  = "Copyright (c) 2026 Shine"
+	version        = "dev"
 	errInvalidArgs = errors.New("invalid arguments")
 )
 
