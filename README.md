@@ -22,15 +22,15 @@ Download from [GitHub Releases](../../releases), extract and place in your PATH:
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-darwin-arm64-v1.1.0.tar.gz"
-tar xzf "gping-darwin-arm64-v1.1.0.tar.gz"
-rm "gping-darwin-arm64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-darwin-arm64-v1.2.0.tar.gz"
+tar xzf "gping-darwin-arm64-v1.2.0.tar.gz"
+rm "gping-darwin-arm64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-linux-amd64-v1.1.0.tar.gz"
-tar xzf "gping-linux-amd64-v1.1.0.tar.gz"
-rm "gping-linux-amd64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-linux-amd64-v1.2.0.tar.gz"
+tar xzf "gping-linux-amd64-v1.2.0.tar.gz"
+rm "gping-linux-amd64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
@@ -40,9 +40,9 @@ A smaller binary without the embedded GeoLite2 database. You must provide the MM
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-tiny-darwin-arm64-v1.1.0.tar.gz"
-tar xzf "gping-tiny-darwin-arm64-v1.1.0.tar.gz"
-rm "gping-tiny-darwin-arm64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+tar xzf "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+rm "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
@@ -156,8 +156,8 @@ make clean          # Clean build artifacts
 Pushing a tag triggers GitHub Actions to build and publish a release:
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64` in both full and tiny variants (8 artifacts total), packages each as `.tar.gz`, and creates a GitHub Release.

@@ -22,15 +22,15 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-darwin-arm64-v1.1.0.tar.gz"
-tar xzf "gping-darwin-arm64-v1.1.0.tar.gz"
-rm "gping-darwin-arm64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-darwin-arm64-v1.2.0.tar.gz"
+tar xzf "gping-darwin-arm64-v1.2.0.tar.gz"
+rm "gping-darwin-arm64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-linux-amd64-v1.1.0.tar.gz"
-tar xzf "gping-linux-amd64-v1.1.0.tar.gz"
-rm "gping-linux-amd64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-linux-amd64-v1.2.0.tar.gz"
+tar xzf "gping-linux-amd64-v1.2.0.tar.gz"
+rm "gping-linux-amd64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
@@ -40,9 +40,9 @@ mv gping ~/.local/bin/
 
 ```bash
 # macOS (Apple Silicon)
-curl -LO "https://github.com/PrintNow/gping/releases/download/v1.1.0/gping-tiny-darwin-arm64-v1.1.0.tar.gz"
-tar xzf "gping-tiny-darwin-arm64-v1.1.0.tar.gz"
-rm "gping-tiny-darwin-arm64-v1.1.0.tar.gz"
+curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+tar xzf "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+rm "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 mv gping ~/.local/bin/
 ```
 
@@ -156,8 +156,8 @@ make clean          # 清理构建产物
 打 tag 后 GitHub Actions 自动构建并发布 Release：
 
 ```bash
-git tag v1.1.0
-git push origin v1.1.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
 CI 会交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64` 四个平台的完整版和精简版（共 8 个产物），打包为 `.tar.gz` 并创建 Release。
