@@ -1,6 +1,8 @@
+<p align="center"><strong>English</strong> · <a href="README.zh-CN.md">简体中文</a></p>
+
 # gping
 
-一个增强版的 ping 工具，在执行 ping 前显示目标 IP 的地理位置信息。支持 DoT / DoH 自定义 DNS。
+An enhanced ping tool that displays the geolocation of the target IP before pinging. Supports DoT / DoH custom DNS.
 
 ```
 $ gping 1.1.1.1
@@ -12,11 +14,11 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 ...
 ```
 
-## 快速上手
+## Quick Start
 
-### 下载安装
+### Install
 
-从 [GitHub Releases](../../releases) 下载对应平台的压缩包，解压后放入 PATH：
+Download from [GitHub Releases](../../releases), extract and place in your PATH:
 
 ```bash
 # macOS (Apple Silicon)
@@ -30,58 +32,58 @@ tar xzf gping-linux-amd64.tar.gz
 mv gping ~/.local/bin/
 ```
 
-### 从源码构建
+### Build from Source
 
-需要 Go 1.25+ 和 MaxMind GeoLite2 City 数据库（MMDB 格式）。
+Requires Go 1.25+ and the MaxMind GeoLite2 City database (MMDB format).
 
 ```bash
-# 1. 下载数据库：https://www.maxmind.com/en/geolite2/signup
-#    将 GeoLite2-City.mmdb 放到 data/ 目录
+# 1. Download the database: https://www.maxmind.com/en/geolite2/signup
+#    Place GeoLite2-City.mmdb in the data/ directory
 
-# 2. 构建
+# 2. Build
 go build -o gping
 
-# 3. 或使用 build.sh（编译到 ./bin/）
+# 3. Or use build.sh (outputs to ./bin/)
 ./build.sh
-./build.sh ~/.local/bin   # 编译并安装到指定目录
+./build.sh ~/.local/bin   # build and install to a directory
 ```
 
-## 使用方法
+## Usage
 
 ```bash
-# 基本用法
-gping 1.1.1.1            # ping IP
-gping ipxy.cc             # ping 域名（多 IP 时随机选一个）
+# Basic
+gping 1.1.1.1            # ping an IP
+gping ipxy.cc             # ping a domain (picks a random IP if multiple)
 
-# 指定 DNS
-gping 127.0.0.1:5353 ipxy.cc                # 自定义端口
-gping cf ipxy.cc                            # 内置别名 → DoH (Cloudflare)
-gping ali www.youtube.com                   # 内置别名 → DoH (阿里)
-gping doh://dns.google/dns-query baidu.com  # 完整 DoH URL
+# Custom DNS
+gping 127.0.0.1:5353 ipxy.cc                # custom port
+gping cf ipxy.cc                            # built-in alias → DoH (Cloudflare)
+gping ali www.youtube.com                   # built-in alias → DoH (Alibaba)
+gping doh://dns.google/dns-query baidu.com  # full DoH URL
 gping dot://cf gping.dev                    # DoT (Cloudflare)
-gping dot://192.168.1.1 internal-svc        # DoT 内网
+gping dot://192.168.1.1 internal-svc        # DoT for internal network
 
-# 透传 ping 参数
+# Pass-through ping flags
 gping -c 5 1.1.1.1
 ```
 
-### 内置 DNS 别名
+### Built-in DNS Aliases
 
-| 别名 | 服务 |
-|------|------|
+| Alias | Service |
+|-------|---------|
 | `cf` / `cloudflare` | Cloudflare DoH |
 | `google` / `g` | Google DoH |
 | `quad9` | Quad9 DoH |
 | `adguard` | AdGuard DoH |
-| `ali` / `aliyun` | 阿里 DoH |
+| `ali` / `aliyun` | Alibaba DoH |
 | `dnspod` / `tx` | DNSPod DoH |
 | `360` | 360 DoH |
 
-短别名默认走 DoH；DoT 需显式 `dot://` 前缀。
+Short aliases default to DoH. Use the `dot://` prefix explicitly for DoT.
 
-### 自定义别名
+### Custom Aliases
 
-创建 `~/.config/gping/dns.toml`（或 `$XDG_CONFIG_HOME/gping/dns.toml`）：
+Create `~/.config/gping/dns.toml` (or `$XDG_CONFIG_HOME/gping/dns.toml`):
 
 ```toml
 [corp]
@@ -98,63 +100,63 @@ type = "udp"
 addr = "10.0.0.1:53"
 ```
 
-之后 `gping corp internal-svc` 即可。同名条目会覆盖内置别名。
+Then use `gping corp internal-svc`. Entries with the same name override built-in aliases.
 
-## 开发指南
+## Development
 
-### 项目结构
+### Project Structure
 
 ```
 .
-├── main.go          # 入口：参数解析、DNS 解析、地理位置查询、调用 ping
-├── color.go         # 终端着色（TTY 检测、NO_COLOR 支持）
-├── json.go          # -json 模式一次性输出
-├── dnsproto.go      # DoT / DoH 协议实现
-├── dnsalias.go      # 内置别名与用户配置加载
-├── dnsalias_test.go # 别名测试
-├── dnsproto_test.go # DNS 协议测试
-├── json_test.go     # JSON 输出测试
-├── main_test.go     # 参数解析与端到端测试
-├── geoip/           # MaxMind 数据库查询封装
+├── main.go          # Entry: arg parsing, DNS resolution, geo lookup, ping execution
+├── color.go         # Terminal coloring (TTY detection, NO_COLOR support)
+├── json.go          # -json mode: one-shot JSON output
+├── dnsproto.go      # DoT / DoH protocol implementation
+├── dnsalias.go      # Built-in aliases and user config loading
+├── dnsalias_test.go # Alias tests
+├── dnsproto_test.go # DNS protocol tests
+├── json_test.go     # JSON output tests
+├── main_test.go     # Arg parsing and end-to-end tests
+├── geoip/           # MaxMind database query wrapper
 │   └── lookup.go
-├── data/            # 数据库目录（.gitignore 排除 mmdb 文件）
+├── data/            # Database directory (mmdb files excluded via .gitignore)
 │   ├── README.md
 │   └── embed.go
-├── build.sh         # 构建脚本
-└── Makefile         # 常用命令快捷入口
+├── build.sh         # Build script
+└── Makefile         # Common command shortcuts
 ```
 
-### 常用命令
+### Common Commands
 
 ```bash
-make build          # 构建到 ./bin/gping
-make test           # 运行测试
-make clean          # 清理构建产物
+make build          # Build to ./bin/gping
+make test           # Run tests
+make clean          # Clean build artifacts
 ```
 
-### 发布流程
+### Release Process
 
-打 tag 后 GitHub Actions 自动构建并发布 Release：
+Pushing a tag triggers GitHub Actions to build and publish a release:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-CI 会交叉编译 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64` 四个平台，打包为 `.tar.gz` 并创建 Release。
+CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64`, packages each as `.tar.gz`, and creates a GitHub Release.
 
-### 依赖
+### Dependencies
 
-- [maxminddb-golang/v2](https://github.com/oschwald/maxminddb-golang) — MaxMind 数据库读取
-- [miekg/dns](https://github.com/miekg/dns) — DoT / DoH 协议
-- [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) — TTY 检测
+- [maxminddb-golang/v2](https://github.com/oschwald/maxminddb-golang) — MaxMind database reader
+- [miekg/dns](https://github.com/miekg/dns) — DoT / DoH protocol
+- [golang.org/x/term](https://pkg.go.dev/golang.org/x/term) — TTY detection
 
-## 注意事项
+## Notes
 
-- 数据库文件约 70MB，嵌入到二进制中（不提交到 git）
-- 仅支持 macOS 和 Linux
-- 数据库加载失败时会显示警告，仍可正常 ping
+- The database file is ~70MB and embedded into the binary (not committed to git)
+- Only supports macOS and Linux
+- If the database fails to load, a warning is shown but ping still works
 
-## 许可证
+## License
 
-MIT License。MaxMind GeoLite2 数据库遵循 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/) 许可证。
+MIT License. MaxMind GeoLite2 database is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
