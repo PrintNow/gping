@@ -25,14 +25,23 @@ Download from [GitHub Releases](../../releases), extract and place in your PATH:
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-darwin-arm64-v1.2.0.tar.gz"
 tar xzf "gping-darwin-arm64-v1.2.0.tar.gz"
 rm "gping-darwin-arm64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-linux-amd64-v1.2.0.tar.gz"
 tar xzf "gping-linux-amd64-v1.2.0.tar.gz"
 rm "gping-linux-amd64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 ```
+
+> **macOS**: `~/.local/bin` may not be in your PATH. Add it to `~/.zshrc`:
+> ```bash
+> echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+> source ~/.zshrc
+> ```
+> **Linux**: `~/.local/bin` is in PATH by default on most desktop distros (Ubuntu, Fedora, etc.).
 
 #### Tiny Variant (~8MB, no embedded database)
 
@@ -43,6 +52,7 @@ A smaller binary without the embedded GeoLite2 database. You must provide the MM
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 tar xzf "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 rm "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 ```
 

@@ -25,14 +25,23 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-darwin-arm64-v1.2.0.tar.gz"
 tar xzf "gping-darwin-arm64-v1.2.0.tar.gz"
 rm "gping-darwin-arm64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-linux-amd64-v1.2.0.tar.gz"
 tar xzf "gping-linux-amd64-v1.2.0.tar.gz"
 rm "gping-linux-amd64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 ```
+
+> **macOS**：`~/.local/bin` 可能不在 PATH 中，需添加到 `~/.zshrc`：
+> ```bash
+> echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+> source ~/.zshrc
+> ```
+> **Linux**：大多数桌面发行版（Ubuntu、Fedora 等）默认已将 `~/.local/bin` 加入 PATH。
 
 #### 精简版（约 8MB，不内嵌数据库）
 
@@ -43,6 +52,7 @@ mv gping ~/.local/bin/
 curl -LO "https://github.com/PrintNow/gping/releases/download/v1.2.0/gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 tar xzf "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
 rm "gping-tiny-darwin-arm64-v1.2.0.tar.gz"
+mkdir -p ~/.local/bin
 mv gping ~/.local/bin/
 ```
 
