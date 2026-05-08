@@ -21,33 +21,50 @@ PING 1.1.1.1 (1.1.1.1): 56 data bytes
 Download from [GitHub Releases](../../releases), extract and place in your PATH:
 
 ```bash
+# Get the latest release version
+TAG=$(curl -s https://api.github.com/repos/PrintNow/gping/releases/latest | grep '"tag_name"' | sed 's/.*: *"//;s/".*//')
+
 # macOS (Apple Silicon)
-curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-darwin-arm64.tar.gz
-tar xzf gping-darwin-arm64.tar.gz
-rm gping-darwin-arm64.tar.gz
+curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-darwin-arm64-${TAG}.tar.gz"
+tar xzf "gping-darwin-arm64-${TAG}.tar.gz"
+rm "gping-darwin-arm64-${TAG}.tar.gz"
 mv gping ~/.local/bin/
 
 # Linux (x86_64)
-curl -LO https://github.com/PrintNow/gping/releases/latest/download/gping-linux-amd64.tar.gz
-tar xzf gping-linux-amd64.tar.gz
-rm gping-linux-amd64.tar.gz
+curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-linux-amd64-${TAG}.tar.gz"
+tar xzf "gping-linux-amd64-${TAG}.tar.gz"
+rm "gping-linux-amd64-${TAG}.tar.gz"
+mv gping ~/.local/bin/
+```
+
+#### Tiny Variant (~8MB, no embedded database)
+
+A smaller binary without the embedded GeoLite2 database. You must provide the MMDB file manually (see [Notes](#notes) for where to place it).
+
+```bash
+# macOS (Apple Silicon)
+curl -LO "https://github.com/PrintNow/gping/releases/download/${TAG}/gping-tiny-darwin-arm64-${TAG}.tar.gz"
+tar xzf "gping-tiny-darwin-arm64-${TAG}.tar.gz"
+rm "gping-tiny-darwin-arm64-${TAG}.tar.gz"
 mv gping ~/.local/bin/
 ```
 
 ### Build from Source
 
-Requires Go 1.25+ and the MaxMind GeoLite2 City database (MMDB format).
+Requires Go 1.25+.
 
 ```bash
-# 1. Download the database: https://www.maxmind.com/en/geolite2/signup
-#    Place GeoLite2-City.mmdb in the data/ directory
+# Full build (embeds GeoLite2-City.mmdb, ~70MB binary)
+# Download the database (no registration required):
+make download-geolite
+make build
 
-# 2. Build
-go build -o gping
+# Or manually download from MaxMind (requires account):
+# https://www.maxmind.com/en/geolite2/signup
+# Place GeoLite2-City.mmdb in the data/ directory
 
-# 3. Or use build.sh (outputs to ./bin/)
-./build.sh
-./build.sh ~/.local/bin   # build and install to a directory
+# Tiny build (~8MB binary, requires external MMDB at runtime)
+make build-tiny
 ```
 
 ## Usage
@@ -131,7 +148,8 @@ Then use `gping corp internal-svc`. Entries with the same name override built-in
 ### Common Commands
 
 ```bash
-make build          # Build to ./bin/gping
+make build          # Build to ./bin/gping (full, ~70MB)
+make build-tiny     # Build to ./bin/gping (tiny, ~8MB, no embedded DB)
 make test           # Run tests
 make clean          # Clean build artifacts
 ```
@@ -145,7 +163,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64`, packages each as `.tar.gz`, and creates a GitHub Release.
+CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/arm64` in both full and tiny variants (8 artifacts total), packages each as `.tar.gz`, and creates a GitHub Release.
 
 ### Dependencies
 
@@ -155,7 +173,14 @@ CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/
 
 ## Notes
 
-- The database file is ~70MB and embedded into the binary (not committed to git)
+- **Full build**: The database file (~70MB) is embedded into the binary (not committed to git)
+- **Tiny build**: No embedded database; binary is ~8MB. You must provide the MMDB file at one of these locations (checked in order):
+  - `GEOIP_CITY_DB` environment variable (full path to the file)
+  - `data/GeoLite2-City.mmdb` relative to the working directory
+  - `data/GeoLite2-City.mmdb` relative to the binary's directory
+  - macOS: `~/Library/Application Support/gping/GeoLite2-City.mmdb`
+  - Linux: `$XDG_DATA_HOME/gping/GeoLite2-City.mmdb` (defaults to `~/.local/share/gping/GeoLite2-City.mmdb`)
+- The full build also checks these filesystem paths (env var and filesystem paths take priority over the embedded copy)
 - Only supports macOS and Linux
 - If the database fails to load, a warning is shown but ping still works
 

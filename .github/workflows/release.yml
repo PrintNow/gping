@@ -16,18 +16,35 @@ jobs:
         include:
           - goos: linux
             goarch: amd64
+            variant: full
           - goos: linux
             goarch: arm64
+            variant: full
           - goos: darwin
             goarch: amd64
+            variant: full
           - goos: darwin
             goarch: arm64
+            variant: full
+          - goos: linux
+            goarch: amd64
+            variant: tiny
+          - goos: linux
+            goarch: arm64
+            variant: tiny
+          - goos: darwin
+            goarch: amd64
+            variant: tiny
+          - goos: darwin
+            goarch: arm64
+            variant: tiny
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
       - name: Download GeoLite2 database
+        if: matrix.variant == 'full'
         run: make download-geolite
       - name: Build
         env:
@@ -36,14 +53,19 @@ jobs:
           CGO_ENABLED: "0"
         run: |
           VERSION="${GITHUB_REF_NAME}"
-          NAME=gping-${{ matrix.goos }}-${{ matrix.goarch }}
-          go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o "${NAME}" .
-          chmod +x "${NAME}"
-          tar czf "${NAME}.tar.gz" "${NAME}"
-          echo "ARCHIVE=${NAME}.tar.gz" >> "$GITHUB_ENV"
+          if [ "${{ matrix.variant }}" = "tiny" ]; then
+            ARCHIVE=gping-tiny-${{ matrix.goos }}-${{ matrix.goarch }}-${VERSION}
+            go build -trimpath -tags tiny -ldflags="-s -w -X main.version=${VERSION}-tiny" -o gping .
+          else
+            ARCHIVE=gping-${{ matrix.goos }}-${{ matrix.goarch }}-${VERSION}
+            go build -trimpath -ldflags="-s -w -X main.version=${VERSION}" -o gping .
+          fi
+          chmod +x gping
+          tar czf "${ARCHIVE}.tar.gz" gping
+          echo "ARCHIVE=${ARCHIVE}.tar.gz" >> "$GITHUB_ENV"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.goos }}-${{ matrix.goarch }}
+          name: ${{ matrix.variant }}-${{ matrix.goos }}-${{ matrix.goarch }}
           path: gping-*.tar.gz
 
   release:

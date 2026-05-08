@@ -8,14 +8,19 @@ MMDB := $(DATA_DIR)/GeoLite2-City.mmdb
 # 浏览器里看到的是 blob 页；实际下载用 raw 内容
 GEOLITE_GZ_URL ?= https://raw.githubusercontent.com/wp-statistics/GeoLite2-City/master/GeoLite2-City.mmdb.gz
 
-.PHONY: build clean download-geolite geolite clean-geolite
+.PHONY: build build-tiny clean download-geolite geolite clean-geolite
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
+TINY_LDFLAGS := -s -w -X main.version=$(VERSION)-tiny
 
 build:
 	mkdir -p $(BIN_DIR)
 	go build -trimpath -ldflags='$(LDFLAGS)' -o $(OUTPUT) .
+
+build-tiny:
+	mkdir -p $(BIN_DIR)
+	go build -trimpath -tags tiny -ldflags='$(TINY_LDFLAGS)' -o $(OUTPUT) .
 
 clean:
 	rm -f $(OUTPUT)
