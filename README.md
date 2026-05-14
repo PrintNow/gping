@@ -194,3 +194,4 @@ CI cross-compiles for `linux/amd64`, `linux/arm64`, `darwin/amd64`, and `darwin/
 ## License
 
 MIT License. MaxMind GeoLite2 database is licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
